@@ -34,7 +34,42 @@ function home(){var gridEl=document.getElementById('grid');gridEl.innerHTML='';S
 function show(id){document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));document.getElementById(id).classList.add('active');scrollTo(0,0)}
 function openSet(id){current=id;stage=0;show('study');render()} function goHome(){clearInterval(timerId);stopRecording(true);show('home');home()}
 function steps(){let d=done(current);return `<div class="steps">${names.map((n,i)=>`<button class="step ${i===stage?'active':''} ${d[i]?'done':''}" onclick="stage=${i};render()">${n[0]}</button>`).join('')}</div>`}
-function speak(t){if(!('speechSynthesis'in window))return toast('TTS not supported');speechSynthesis.cancel();let u=new SpeechSynthesisUtterance(t);u.lang='en-US';u.rate=.88;speechSynthesis.speak(u)}
+function speak(t){
+  if(!('speechSynthesis' in window) || !('SpeechSynthesisUtterance' in window)){toast('TTS not supported');return;}
+  var synth=window.speechSynthesis;
+  synth.cancel();
+  function play(){
+    var voices=synth.getVoices() || [];
+    var voice=null, i;
+    for(i=0;i<voices.length;i++){
+      if(/^en-US/i.test(voices[i].lang)){voice=voices[i];break;}
+    }
+    if(!voice){
+      for(i=0;i<voices.length;i++){
+        if(/^en/i.test(voices[i].lang)){voice=voices[i];break;}
+      }
+    }
+    var u=new SpeechSynthesisUtterance(t);
+    u.lang=voice ? voice.lang : 'en-US';
+    if(voice)u.voice=voice;
+    u.rate=0.88;
+    u.volume=1;
+    u.onerror=function(){toast('🔇 음성을 재생하지 못했어요');};
+    synth.speak(u);
+    if(synth.paused)synth.resume();
+  }
+  if(synth.getVoices().length){play();}
+  else{
+    var fired=false;
+    var onvoices=function(){
+      if(fired)return; fired=true;
+      synth.removeEventListener('voiceschanged',onvoices);
+      play();
+    };
+    synth.addEventListener('voiceschanged',onvoices);
+    setTimeout(function(){if(!fired){fired=true;synth.removeEventListener('voiceschanged',onvoices);play();}},350);
+  }
+}
 function chunks(t){
   var out=[], buf='', i=0, ch='';
   for(i=0;i<t.length;i++){
@@ -47,7 +82,34 @@ function chunks(t){
   return out;
 } function mask(t){let n=0;return t.split(/(\s+)/).map(w=>/^\s+$/.test(w)?w:(++n%4===0?'_____':w)).join('')}
 function toast(t){let x=document.getElementById('toast');x.textContent=t;x.classList.add('show');setTimeout(()=>x.classList.remove('show'),1400)}
-function clearStage(){let d=done(current);if(!d[stage]){d[stage]=true;state.done[String(current)]=d;state.xp=(state.xp||0)+10;save();toast('+10 XP')};if(stage<4){stage++;render()}else{toast('MASTERED ✓');setTimeout(goHome,650)}}
+function clearStage(){
+  var d=done(current);
+  if(!d[stage]){
+    d[stage]=true;
+    state.done[String(current)]=d;
+    state.xp=(state.xp||0)+10;
+    save();
+    toast('+10 XP');
+  }
+  render();
+}
+function undoStage(){
+  var d=done(current);
+  if(d[stage]){
+    d[stage]=false;
+    state.done[String(current)]=d;
+    state.xp=Math.max(0,(state.xp||0)-10);
+    save();
+    toast('Done 취소');
+  }
+  render();
+}
+function doneButton(){
+  var d=done(current);
+  return d[stage]
+    ? '<button class="btn good" onclick="undoStage()">↩ Done 취소</button>'
+    : '<button class="btn good" onclick="clearStage()">✓ Done</button>';
+}
 function toggle(id){let x=document.getElementById(id);if(x)x.classList.toggle('hidden')}
 function timer(){clearInterval(timerId);let n=60,e=document.getElementById('timer');e.textContent=n;timerId=setInterval(()=>{e.textContent=--n;if(n<=0){clearInterval(timerId);toast("Time's up! 🎙️")}},1000)}
 async function record(){
@@ -60,13 +122,13 @@ function recordUI(){return `<button id="rec" class="btn light" onclick="record()
 function render(){
  clearInterval(timerId);stopRecording(true);audioURL=null;if(current===15)return boss();
  let s=SETS.find(x=>x.id===current),body='';
- if(stage===0)body=`<h3>🧩 Chunk</h3><div class="tip">문장별로 듣고 따라 말하세요.</div><div class="answer">${chunks(s.answer).map(x=>`<span class="chunk">${x}</span>`).join('')}</div><div class="actions"><button class="btn light" onclick='speak(${JSON.stringify(s.answer)})'>🔊 Listen</button><button class="btn good" onclick="clearStage()">✓ Done</button></div>`;
- if(stage===1)body=`<h3>🧠 Recall</h3><div class="bigq">${s.questions[0]}</div><div class="cues">${s.cues.map(x=>`<span class="cue">${x}</span>`).join('')}</div><div class="actions"><button class="btn light" onclick="toggle('ans')">👀 Answer</button>${recordUI()}<button class="btn good" onclick="clearStage()">✓ Done</button></div><div id="ans" class="answer hidden">${s.answer}</div>`;
- if(stage===2)body=`<h3>🕳 Blank</h3><div class="answer">${mask(s.answer)}</div><div class="actions"><button class="btn light" onclick="toggle('ans')">👀 Full Answer</button>${recordUI()}<button class="btn good" onclick="clearStage()">✓ Done</button></div><div id="ans" class="answer hidden">${s.answer}</div>`;
- if(stage===3)body=`<h3>🎙️ Real Speaking</h3><div class="bigq">${s.questions[Math.floor(Math.random()*s.questions.length)]}</div><div class="timer" id="timer">60</div><div class="tip">NO SCRIPT · NO KEYWORDS · 같은 문장일 필요 없음.</div><div class="actions"><button class="btn" onclick="timer()">▶ 60s</button>${recordUI()}<button class="btn light" onclick="toggle('ans')">👀 Model</button><button class="btn good" onclick="clearStage()">✓ Done</button></div><div id="ans" class="answer hidden">${s.answer}</div>`;
+ if(stage===0)body=`<h3>🧩 Chunk</h3><div class="tip">문장별로 듣고 따라 말하세요.</div><div class="answer">${chunks(s.answer).map(x=>`<span class="chunk">${x}</span>`).join('')}</div><div class="actions"><button class="btn light" onclick='speak(${JSON.stringify(s.answer)})'>🔊 Listen</button>${doneButton()}</div>`;
+ if(stage===1)body=`<h3>🧠 Recall</h3><div class="bigq">${s.questions[0]}</div><div class="cues">${s.cues.map(x=>`<span class="cue">${x}</span>`).join('')}</div><div class="actions"><button class="btn light" onclick="toggle('ans')">👀 Answer</button>${recordUI()}${doneButton()}</div><div id="ans" class="answer hidden">${s.answer}</div>`;
+ if(stage===2)body=`<h3>🕳 Blank</h3><div class="answer">${mask(s.answer)}</div><div class="actions"><button class="btn light" onclick="toggle('ans')">👀 Full Answer</button>${recordUI()}${doneButton()}</div><div id="ans" class="answer hidden">${s.answer}</div>`;
+ if(stage===3)body=`<h3>🎙️ Real Speaking</h3><div class="bigq">${s.questions[Math.floor(Math.random()*s.questions.length)]}</div><div class="timer" id="timer">60</div><div class="tip">NO SCRIPT · NO KEYWORDS · 같은 문장일 필요 없음.</div><div class="actions"><button class="btn" onclick="timer()">▶ 60s</button>${recordUI()}<button class="btn light" onclick="toggle('ans')">👀 Model</button>${doneButton()}</div><div id="ans" class="answer hidden">${s.answer}</div>`;
  if(stage===4){let q=s.finals[Math.floor(Math.random()*s.finals.length)];body=`<h3>🏁 Final</h3><div class="tip">변형 질문입니다. Chunk를 재조립해서 답하세요.</div><div class="bigq">${q}</div><div class="timer" id="timer">60</div><div class="actions"><button class="btn" onclick="timer()">▶ Final</button>${recordUI()}<button class="btn light" onclick="toggle('cue')">💡 Cues</button><button class="btn good" onclick="clearStage()">🏆 Clear</button></div><div id="cue" class="cues hidden">${s.cues.map(x=>`<span class="cue">${x}</span>`).join('')}</div>`}
  document.getElementById('studyBody').innerHTML=`<div class="stageHead"><div class="num">${String(s.id).padStart(2,'0')} · ${s.topic}</div><h2>${s.icon} ${s.title}</h2><div class="q">${s.questions.join('<br>')}</div>${steps()}</div><div class="panel">${body}</div>`;
 }
-function boss(){let b=BOSS[stage%BOSS.length],body=stage<3?`<h3>${stage===0?'🧩 Situation Build':stage===1?'🧠 Recall':'🕳 Minimal Cues'}</h3><div class="bigq">${b.q}</div><div class="cues">${b.cues.filter((_,i)=>stage<2||i%2===0).map(x=>`<span class="cue">${x}</span>`).join('')}</div><div class="actions">${recordUI()}<button class="btn good" onclick="clearStage()">✓ Done</button></div>`:`<h3>${stage===3?'🎙️ Real Role-play':'👹 Final Boss'}</h3><div class="bigq">${(stage===4?BOSS[Math.floor(Math.random()*BOSS.length)]:b).q}</div><div class="timer" id="timer">60</div><div class="actions"><button class="btn" onclick="timer()">⚔️ 60s</button>${recordUI()}<button class="btn good" onclick="clearStage()">${stage===4?'🏆 BOSS CLEAR':'✓ Done'}</button></div>`;document.getElementById('studyBody').innerHTML=`<div class="stageHead"><div class="num">15 · BOSS BATTLE</div><h2>👹 Integrated Challenge</h2><div class="q">Q01–14 표현을 섞어서 즉석 대응합니다.</div>${steps()}</div><div class="panel">${body}</div>`}
+function boss(){let b=BOSS[stage%BOSS.length],body=stage<3?`<h3>${stage===0?'🧩 Situation Build':stage===1?'🧠 Recall':'🕳 Minimal Cues'}</h3><div class="bigq">${b.q}</div><div class="cues">${b.cues.filter((_,i)=>stage<2||i%2===0).map(x=>`<span class="cue">${x}</span>`).join('')}</div><div class="actions">${recordUI()}${doneButton()}</div>`:`<h3>${stage===3?'🎙️ Real Role-play':'👹 Final Boss'}</h3><div class="bigq">${(stage===4?BOSS[Math.floor(Math.random()*BOSS.length)]:b).q}</div><div class="timer" id="timer">60</div><div class="actions"><button class="btn" onclick="timer()">⚔️ 60s</button>${recordUI()}<button class="btn good" onclick="clearStage()">${stage===4?'🏆 BOSS CLEAR':'✓ Done'}</button></div>`;document.getElementById('studyBody').innerHTML=`<div class="stageHead"><div class="num">15 · BOSS BATTLE</div><h2>👹 Integrated Challenge</h2><div class="q">Q01–14 표현을 섞어서 즉석 대응합니다.</div>${steps()}</div><div class="panel">${body}</div>`}
 if('serviceWorker'in navigator)window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(()=>{}));home();
 </script></body></html>
