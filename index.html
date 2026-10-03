@@ -20,7 +20,7 @@ main{max-width:860px;margin:auto;padding:18px 14px}.view{display:none}.view.acti
 .toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom));transform:translateX(-50%);background:#111;color:#fff;padding:10px 14px;border-radius:99px;font-size:12px;opacity:0;transition:.2s;pointer-events:none;z-index:30}.toast.show{opacity:1}
 @media(min-width:650px){.grid{grid-template-columns:repeat(3,1fr)}}
 </style></head><body>
-<header><div class="head"><div><h1>🎙️ OPIc AL Speaking Gym</h1><div class="sub">C → R → B → R → F · build, recall, speak</div></div><div class="stats"><b id="xp">0</b> XP<br><span id="mastered">0</span>/15 mastered</div></div><div class="progress"><i id="bar"></i></div></header>
+<header><div class="head"><div><h1>🎙️ OPIc AL Speaking Gym</h1><div class="sub">C → R → B → R → F · build, recall, speak <span style="font-size:10px;opacity:.65">v1.3</span></div></div><div class="stats"><b id="xp">0</b> XP<br><span id="mastered">0</span>/15 mastered</div></div><div class="progress"><i id="bar"></i></div></header>
 <main><section id="home" class="view active"><div class="hero"><h2>Your Speaking Map</h2><p>원문 통암기보다 <b>cue → 영어</b> 연결을 만듭니다. 학습 기록은 이 기기의 브라우저에만 저장됩니다.</p></div><div class="grid" id="grid"></div></section>
 <section id="study" class="view"><button class="back" onclick="goHome()">← Speaking Map</button><div id="studyBody"></div></section></main><div class="toast" id="toast"></div>
 <script>
