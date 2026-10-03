@@ -20,7 +20,20 @@ main{max-width:860px;margin:auto;padding:18px 14px}.view{display:none}.view.acti
 .toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom));transform:translateX(-50%);background:#111;color:#fff;padding:10px 14px;border-radius:99px;font-size:12px;opacity:0;transition:.2s;pointer-events:none;z-index:30}.toast.show{opacity:1}
 @media(min-width:650px){.grid{grid-template-columns:repeat(3,1fr)}}
 </style></head><body>
-<header><div class="head"><div><h1>🎙️ OPIc AL Speaking Gym</h1><div class="sub">C → R → B → R → F · build, recall, speak <span style="font-size:10px;opacity:.65">v1.3</span></div></div><div class="stats"><b id="xp">0</b> XP<br><span id="mastered">0</span>/15 mastered</div></div><div class="progress"><i id="bar"></i></div></header>
+<header><div class="head"><div><h1>🎙️ OPIc AL Speaking Gym</h1><div class="sub">C → R → B → R → F · build, recall, speak <span style="font-size:10px;opacity:.65">v1.4</span></div></div><div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:14px 0 4px">
+  <label style="font-size:12px;font-weight:800">🎙 Voice
+    <select id="voiceSelect" style="max-width:210px;padding:8px;border:1px solid #d9dde3;border-radius:10px;background:#fff"></select>
+  </label>
+  <label style="font-size:12px;font-weight:800">Speed
+    <select id="rateSelect" style="padding:8px;border:1px solid #d9dde3;border-radius:10px;background:#fff">
+      <option value="0.75">0.75×</option>
+      <option value="0.85">0.85×</option>
+      <option value="0.95">0.95×</option>
+      <option value="1">1.0×</option>
+      <option value="1.1">1.1×</option>
+    </select>
+  </label>
+</div><div class="stats"><b id="xp">0</b> XP<br><span id="mastered">0</span>/15 mastered</div></div><div class="progress"><i id="bar"></i></div></header>
 <main><section id="home" class="view active"><div class="hero"><h2>Your Speaking Map</h2><p>원문 통암기보다 <b>cue → 영어</b> 연결을 만듭니다. 학습 기록은 이 기기의 브라우저에만 저장됩니다.</p></div><div class="grid" id="grid"></div></section>
 <section id="study" class="view"><button class="back" onclick="goHome()">← Speaking Map</button><div id="studyBody"></div></section></main><div class="toast" id="toast"></div>
 <script>
@@ -41,8 +54,14 @@ function speak(t,button){
   function play(){
     var voices=synth.getVoices() || [];
     var voice=null, i;
+    var savedVoice=localStorage.getItem('opic_voice_uri')||'';
     for(i=0;i<voices.length;i++){
-      if(/^en-US/i.test(voices[i].lang)){voice=voices[i];break;}
+      if(voices[i].voiceURI===savedVoice){voice=voices[i];break;}
+    }
+    if(!voice){
+      for(i=0;i<voices.length;i++){
+        if(/^en-US/i.test(voices[i].lang)){voice=voices[i];break;}
+      }
     }
     if(!voice){
       for(i=0;i<voices.length;i++){
@@ -52,7 +71,8 @@ function speak(t,button){
     var u=new SpeechSynthesisUtterance(t);
     u.lang=voice ? voice.lang : 'en-US';
     if(voice)u.voice=voice;
-    u.rate=0.88;
+    var savedRate=parseFloat(localStorage.getItem('opic_voice_rate')||'0.85');
+    u.rate=isNaN(savedRate)?0.85:savedRate;
     u.volume=1;
     u.onstart=function(){toast('🔊 Playing');if(button)button.textContent='🔊 Playing...';};
     u.onend=function(){if(button)button.textContent=button.getAttribute('data-label')||'🔊 Listen';};
@@ -143,6 +163,50 @@ document.addEventListener('click',function(e){
   if(!btn.getAttribute('data-label'))btn.setAttribute('data-label',btn.textContent); btn.textContent='🔊 Playing...';
   speak(textValue,btn);
 });
+
+
+function loadVoiceControls(){
+  if(!('speechSynthesis' in window))return;
+  var sel=document.getElementById('voiceSelect');
+  var rate=document.getElementById('rateSelect');
+  if(!sel || !rate)return;
+  var voices=window.speechSynthesis.getVoices()||[];
+  var english=voices.filter(function(v){return /^en/i.test(v.lang||'');});
+  var saved=localStorage.getItem('opic_voice_uri')||'';
+  sel.innerHTML='';
+  if(!english.length){
+    var wait=document.createElement('option');
+    wait.value=''; wait.textContent='Loading voices…'; sel.appendChild(wait);
+  }else{
+    english.forEach(function(v){
+      var opt=document.createElement('option');
+      opt.value=v.voiceURI;
+      opt.textContent=v.name+' · '+v.lang+(v.localService?'':' · online');
+      if(v.voiceURI===saved)opt.selected=true;
+      sel.appendChild(opt);
+    });
+    if(saved && !english.some(function(v){return v.voiceURI===saved;})){
+      localStorage.removeItem('opic_voice_uri');
+    }
+  }
+  rate.value=localStorage.getItem('opic_voice_rate')||'0.85';
+}
+document.addEventListener('change',function(e){
+  if(e.target && e.target.id==='voiceSelect'){
+    localStorage.setItem('opic_voice_uri',e.target.value);
+    toast('🎙 Voice saved');
+  }
+  if(e.target && e.target.id==='rateSelect'){
+    localStorage.setItem('opic_voice_rate',e.target.value);
+    toast('⏱ Speed '+e.target.value+'×');
+  }
+});
+if('speechSynthesis' in window){
+  loadVoiceControls();
+  window.speechSynthesis.addEventListener('voiceschanged',loadVoiceControls);
+  setTimeout(loadVoiceControls,250);
+  setTimeout(loadVoiceControls,1000);
+}
 
 if('serviceWorker'in navigator)window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(()=>{}));home();
 </script></body></html>
