@@ -16,11 +16,11 @@ main{max-width:860px;margin:auto;padding:18px 14px}.view{display:none}.view.acti
 .grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}.card{border:1px solid var(--line);background:#fff;border-radius:18px;padding:14px;text-align:left;min-height:142px}.card:active{transform:scale(.985)}.num{font-size:10px;color:var(--muted);font-weight:800;letter-spacing:.07em}.ico{font-size:24px;margin:9px 0 6px}.card h3{font-size:15px;margin:0 0 3px}.topic{font-size:11px;color:var(--muted)}.dots{display:flex;gap:4px;margin-top:13px}.dot{height:5px;flex:1;background:#e5e7eb;border-radius:9px}.dot.on{background:#181b20}.boss{background:#191b20;color:#fff;border:0}.boss .num,.boss .topic{color:#adb3be}.boss .dot{background:#383d47}.boss .dot.on{background:#fff}
 .back{border:0;background:transparent;padding:3px 0 13px;font-weight:750;color:#555}.stageHead,.panel{background:#fff;border:1px solid var(--line);border-radius:20px;padding:17px}.stageHead{margin-bottom:10px}.stageHead h2{font-size:22px;margin:5px 0 7px}.q{font-size:14px;line-height:1.5}
 .steps{display:grid;grid-template-columns:repeat(5,1fr);gap:5px;margin-top:14px}.step{border:0;border-radius:10px;padding:9px 2px;background:#edf0f3;font-size:10px;font-weight:850}.step.active{background:#17191d;color:#fff}.step.done{background:var(--good);color:#155c35}
-.panel h3{margin:0 0 10px}.answer{font-size:16px;line-height:1.82;white-space:pre-line;margin-top:12px}.chunk{display:block;background:#f4f5f7;padding:10px 11px;border-radius:12px;margin:7px 0}.cues{display:flex;flex-wrap:wrap;gap:7px}.cue{background:#f0f2f5;border-radius:99px;padding:8px 11px;font-size:12px}.bigq{font-size:20px;line-height:1.45;font-weight:780;margin:12px 0 18px}.hidden{display:none}.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:15px}.btn{border:0;background:#17191d;color:#fff;border-radius:12px;padding:12px 14px;font-weight:750}.btn.light{background:#eceef2;color:#222}.btn.good{background:var(--good);color:#155c35}.btn.recording{background:#b42318}.timer{font-size:44px;font-weight:850;margin:10px 0}.tip{font-size:12px;line-height:1.55;color:var(--muted);margin:8px 0}audio{width:100%;margin-top:12px}
+.panel h3{margin:0 0 10px}.answer{font-size:16px;line-height:1.82;white-space:pre-line;margin-top:12px}.chunk{display:block;background:#f4f5f7;padding:10px 38px 10px 11px;border-radius:12px;margin:7px 0;position:relative}.chunk-listen{cursor:pointer;-webkit-tap-highlight-color:transparent;transition:.15s ease}.chunk-listen:active{transform:scale(.995)}.chunk-listen.playing{background:#e6f6ed;box-shadow:inset 0 0 0 2px #49a66d}.chunk-audio{position:absolute;right:11px;top:50%;transform:translateY(-50%);opacity:.38;font-size:13px}.chunk-listen.playing .chunk-audio{opacity:1}.cues{display:flex;flex-wrap:wrap;gap:7px}.cue{background:#f0f2f5;border-radius:99px;padding:8px 11px;font-size:12px}.bigq{font-size:20px;line-height:1.45;font-weight:780;margin:12px 0 18px}.hidden{display:none}.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:15px}.btn{border:0;background:#17191d;color:#fff;border-radius:12px;padding:12px 14px;font-weight:750}.btn.light{background:#eceef2;color:#222}.btn.good{background:var(--good);color:#155c35}.btn.recording{background:#b42318}.timer{font-size:44px;font-weight:850;margin:10px 0}.tip{font-size:12px;line-height:1.55;color:var(--muted);margin:8px 0}audio{width:100%;margin-top:12px}
 .toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom));transform:translateX(-50%);background:#111;color:#fff;padding:10px 14px;border-radius:99px;font-size:12px;opacity:0;transition:.2s;pointer-events:none;z-index:30}.toast.show{opacity:1}
 @media(min-width:650px){.grid{grid-template-columns:repeat(3,1fr)}}
 </style></head><body>
-<header><div class="head"><div><h1>🎙️ OPIc AL Speaking Gym</h1><div class="sub">C → R → B → R → F · build, recall, speak <span style="font-size:10px;opacity:.65">v1.4</span></div></div><div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:14px 0 4px">
+<header><div class="head"><div><h1>🎙️ OPIc AL Speaking Gym</h1><div class="sub">C → R → B → R → F · build, recall, speak <span style="font-size:10px;opacity:.65">v1.5</span></div></div><div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:14px 0 4px">
   <label style="font-size:12px;font-weight:800">🎙 Voice
     <select id="voiceSelect" style="max-width:210px;padding:8px;border:1px solid #d9dde3;border-radius:10px;background:#fff"></select>
   </label>
@@ -75,8 +75,8 @@ function speak(t,button){
     u.rate=isNaN(savedRate)?0.85:savedRate;
     u.volume=1;
     u.onstart=function(){toast('🔊 Playing');if(button)button.textContent='🔊 Playing...';};
-    u.onend=function(){if(button)button.textContent=button.getAttribute('data-label')||'🔊 Listen';};
-    u.onerror=function(e){if(button)button.textContent=button.getAttribute('data-label')||'🔊 Listen';toast('🔇 TTS error: '+(e.error||'unknown'));};
+    u.onend=function(){if(button)button.textContent=button.getAttribute('data-label')||'🔊 Listen';if(activeChunk){activeChunk.classList.remove('playing');activeChunk=null;}};
+    u.onerror=function(e){if(button)button.textContent=button.getAttribute('data-label')||'🔊 Listen';if(activeChunk){activeChunk.classList.remove('playing');activeChunk=null;}if(!e||e.error!=='canceled')toast('🔇 TTS error: '+((e&&e.error)||'unknown'));};
     synth.speak(u);
     if(synth.paused)synth.resume();
   }
@@ -144,24 +144,38 @@ function recordUI(){return `<button id="rec" class="btn light" onclick="record()
 function render(){
  clearInterval(timerId);stopRecording(true);audioURL=null;if(current===15)return boss();
  let s=SETS.find(x=>x.id===current),body='';
- if(stage===0)body=`<h3>🧩 Chunk</h3><div class="tip">문장별로 듣고 따라 말하세요.</div><div class="answer">${chunks(s.answer).map(x=>`<span class="chunk">${x}</span>`).join('')}</div><div class="actions"><button class="btn light tts-btn" data-tts="${encodeURIComponent(s.answer)}">🔊 Answer</button>${doneButton()}</div>`;
- if(stage===1)body=`<h3>🧠 Recall</h3><div class="bigq">${s.questions[0]}</div><button class="btn light tts-btn" data-tts="${encodeURIComponent(s.questions[0])}">🔊 Question</button><div class="cues">${s.cues.map(x=>`<span class="cue">${x}</span>`).join('')}</div><div class="actions"><button class="btn light" onclick="toggle('ans')">👀 Answer</button>${recordUI()}${doneButton()}</div><div id="ans" class="answer hidden">${s.answer}</div>`;
+ if(stage===0)body=`<h3>🧩 Chunk</h3><div class="tip">문장별로 듣고 따라 말하세요.</div><div class="answer">${chunks(s.answer).map(x=>`<span class="chunk chunk-listen" role="button" tabindex="0" data-tts="${encodeURIComponent(x)}">${x}<span class="chunk-audio">🔊</span></span>`).join('')}</div><div class="actions">${doneButton()}</div>`;
+ if(stage===1)body=`<h3>🧠 Recall</h3><div class="bigq">${s.questions[0]}</div><div class="cues">${s.cues.map(x=>`<span class="cue">${x}</span>`).join('')}</div><div class="actions"><button class="btn light" onclick="toggle('ans')">👀 Answer</button>${recordUI()}${doneButton()}</div><div id="ans" class="answer hidden">${s.answer}</div>`;
  if(stage===2)body=`<h3>🕳 Blank</h3><div class="answer">${mask(s.answer)}</div><div class="actions"><button class="btn light" onclick="toggle('ans')">👀 Full Answer</button>${recordUI()}${doneButton()}</div><div id="ans" class="answer hidden">${s.answer}</div>`;
  if(stage===3){let rq=s.questions[Math.floor(Math.random()*s.questions.length)];body=`<h3>🎙️ Real Speaking</h3><div class="bigq">${rq}</div><button class="btn light tts-btn" data-tts="${encodeURIComponent(rq)}">🔊 Question</button><div class="timer" id="timer">60</div><div class="tip">NO SCRIPT · NO KEYWORDS · 같은 문장일 필요 없음.</div><div class="actions"><button class="btn" onclick="timer()">▶ 60s</button>${recordUI()}<button class="btn light" onclick="toggle('ans')">👀 Model</button>${doneButton()}</div><div id="ans" class="answer hidden">${s.answer}</div>`;}
  if(stage===4){let q=s.finals[Math.floor(Math.random()*s.finals.length)];body=`<h3>🏁 Final</h3><div class="tip">변형 질문입니다. Chunk를 재조립해서 답하세요.</div><div class="bigq">${q}</div><button class="btn light tts-btn" data-tts="${encodeURIComponent(q)}">🔊 Question</button><div class="timer" id="timer">60</div><div class="actions"><button class="btn" onclick="timer()">▶ Final</button>${recordUI()}<button class="btn light" onclick="toggle('cue')">💡 Cues</button><button class="btn good" onclick="clearStage()">🏆 Clear</button></div><div id="cue" class="cues hidden">${s.cues.map(x=>`<span class="cue">${x}</span>`).join('')}</div>`}
- document.getElementById('studyBody').innerHTML=`<div class="stageHead"><div class="num">${String(s.id).padStart(2,'0')} · ${s.topic}</div><h2>${s.icon} ${s.title}</h2><div class="q">${s.questions.join('<br>')}</div><div class="actions"><button class="btn light tts-btn" data-tts="${encodeURIComponent(s.questions[0])}">🔊 Question</button></div>${steps()}</div><div class="panel">${body}</div>`;
+ document.getElementById('studyBody').innerHTML=`<div class="stageHead"><div class="num">${String(s.id).padStart(2,'0')} · ${s.topic}</div><h2>${s.icon} ${s.title}</h2><div class="q">${s.questions.join('<br>')}</div><div class="actions"><button class="btn light tts-btn" data-tts="${encodeURIComponent(s.questions.join(' '))}">🔊 Question</button></div>${steps()}</div><div class="panel">${body}</div>`;
 }
 function boss(){let b=BOSS[stage%BOSS.length],body=stage<3?`<h3>${stage===0?'🧩 Situation Build':stage===1?'🧠 Recall':'🕳 Minimal Cues'}</h3><div class="bigq">${b.q}</div><div class="cues">${b.cues.filter((_,i)=>stage<2||i%2===0).map(x=>`<span class="cue">${x}</span>`).join('')}</div><div class="actions">${recordUI()}${doneButton()}</div>`:`<h3>${stage===3?'🎙️ Real Role-play':'👹 Final Boss'}</h3><div class="bigq">${(stage===4?BOSS[Math.floor(Math.random()*BOSS.length)]:b).q}</div><div class="timer" id="timer">60</div><div class="actions"><button class="btn" onclick="timer()">⚔️ 60s</button>${recordUI()}<button class="btn good" onclick="clearStage()">${stage===4?'🏆 BOSS CLEAR':'✓ Done'}</button></div>`;document.getElementById('studyBody').innerHTML=`<div class="stageHead"><div class="num">15 · BOSS BATTLE</div><h2>👹 Integrated Challenge</h2><div class="q">Q01–14 표현을 섞어서 즉석 대응합니다.</div>${steps()}</div><div class="panel">${body}</div>`}
 
 document.addEventListener('click',function(e){
-  var btn=e.target.closest ? e.target.closest('.tts-btn') : null;
+  var chunk=e.target.closest?e.target.closest('.chunk-listen'):null;
+  if(chunk){
+    e.preventDefault();
+    if(activeChunk===chunk && window.speechSynthesis && window.speechSynthesis.speaking){
+      window.speechSynthesis.cancel();chunk.classList.remove('playing');activeChunk=null;return;
+    }
+    if(window.speechSynthesis)window.speechSynthesis.cancel();
+    if(activeChunk)activeChunk.classList.remove('playing');
+    activeChunk=chunk;chunk.classList.add('playing');
+    var cr=chunk.getAttribute('data-tts')||'',ct='';
+    try{ct=decodeURIComponent(cr)}catch(err){ct=cr}
+    speak(ct,null);return;
+  }
+  var btn=e.target.closest?e.target.closest('.tts-btn'):null;
   if(!btn)return;
   e.preventDefault();
-  var raw=btn.getAttribute('data-tts')||'';
-  var textValue='';
-  try{textValue=decodeURIComponent(raw);}catch(err){textValue=raw;}
-  if(!btn.getAttribute('data-label'))btn.setAttribute('data-label',btn.textContent); btn.textContent='🔊 Playing...';
-  speak(textValue,btn);
+  if(window.speechSynthesis)window.speechSynthesis.cancel();
+  if(activeChunk){activeChunk.classList.remove('playing');activeChunk=null;}
+  var raw=btn.getAttribute('data-tts')||'',textValue='';
+  try{textValue=decodeURIComponent(raw)}catch(err){textValue=raw}
+  if(!btn.getAttribute('data-label'))btn.setAttribute('data-label',btn.textContent);
+  btn.textContent='🔊 Playing...';speak(textValue,btn);
 });
 
 
@@ -208,5 +222,6 @@ if('speechSynthesis' in window){
   setTimeout(loadVoiceControls,1000);
 }
 
+document.addEventListener('keydown',function(e){if((e.key==='Enter'||e.key===' ')&&e.target&&e.target.classList&&e.target.classList.contains('chunk-listen')){e.preventDefault();e.target.click();}});
 if('serviceWorker'in navigator)window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(()=>{}));home();
 </script></body></html>
