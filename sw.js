@@ -1,4 +1,4 @@
-const CACHE = 'opic-gym-v5';
+const CACHE = 'opic-gym-v6';
 const STATIC = [
   './manifest.webmanifest',
   './icon-192.png',
